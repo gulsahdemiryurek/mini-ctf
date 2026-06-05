@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://gulsahdemiryurek.github.io/minictf/sitemap.xml

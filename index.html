@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<!-- ====== SEO ======
+     YAYINLAMADAN ÖNCE: KULLANICIADI (GitHub kullanıcı adın) ve
+     REPOADI (repo adın) kısımlarını değiştir.
+     Örn: https://gulsah.github.io/ctf-oyunu/
+-->
+<title>CTF Oyunu / CTF Game — Şifre Çözme Bulmacaları | Base64, Hex, XOR, ROT13</title>
+<meta name="description" content="Tarayıcıda oynanan ücretsiz iki dilli (TR/EN) CTF oyunu. Base64, hex, XOR, ROT13 ve URL kodlama tekniklerini bulmacalarla öğren. / Free bilingual browser CTF game to learn Base64, hex, XOR, ROT13 and more.">
+<meta name="keywords" content="CTF, capture the flag, CTF oyunu, CTF game, şifre çözme, decode, base64, hex, XOR, ROT13, URL encoding, siber güvenlik, cybersecurity, kriptografi, cryptography, ethical hacking, bulmaca, puzzle, zeka oyunu, online oyun, ücretsiz oyun, free game, Türkçe CTF, learn cybersecurity, beginner, pentest">
+<meta name="author" content="">
+<meta name="robots" content="index, follow">
+<link rel="canonical" href="https://gulsahdemiryurek.github.io/minictf/">
+
+<meta property="og:type" content="website">
+<meta property="og:title" content="CTF Oyunu / CTF Game — Decode the Flag">
+<meta property="og:description" content="Base64, hex, XOR ve daha fazlasını eğlenceli bulmacalarla öğren. / Learn by solving puzzles. Free, in your browser.">
+<meta property="og:url" content="https://gulsahdemiryurek.github.io/minictf/">
+
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="CTF Oyunu / CTF Game — Decode the Flag">
+<meta name="twitter:description" content="Base64, hex, XOR ve daha fazlasını bulmacalarla öğren. / Learn by solving puzzles.">
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Game",
+  "name": "CTF Oyunu / CTF Game — Decode the Flag",
+  "description": "A free bilingual (Turkish/English) browser CTF puzzle game teaching Base64, hex, XOR, ROT13 and URL encoding.",
+  "genre": "Puzzle, Educational",
+  "inLanguage": ["tr", "en"],
+  "applicationCategory": "Game",
+  "operatingSystem": "Web Browser"
+}
+</script>
+
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Major+Mono+Display&display=swap');
+
+  :root{
+    --bg:#05080a; --bg2:#0a1014; --panel:#0d1418; --panel-2:#101a20;
+    --line:#1b2a30; --line-bright:#27414a;
+    --green:#4ee87a; --green-dim:#2a9c52; --cyan:#54d6e0;
+    --amber:#e8b84e; --red:#ff5c6c; --ink:#cfe6dd; --muted:#5d7a78;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;min-height:100%;}
+  body{
+    background:
+      radial-gradient(800px 500px at 90% -5%, rgba(84,214,224,.06), transparent 60%),
+      linear-gradient(180deg,var(--bg),var(--bg2));
+    color:var(--ink); font-family:'IBM Plex Mono',monospace; line-height:1.55;
+    padding:20px 14px 60px; -webkit-text-size-adjust:100%;
+  }
+  body::before{
+    content:"";position:fixed;inset:0;pointer-events:none;z-index:5;
+    background:repeating-linear-gradient(0deg, rgba(0,0,0,0) 0 2px, rgba(0,0,0,.18) 2px 3px);
+    opacity:.35;mix-blend-mode:multiply;
+  }
+  .wrap{max-width:680px;margin:0 auto;position:relative;z-index:1;}
+
+  header{border-bottom:1px solid var(--line);padding-bottom:14px;margin-bottom:20px;position:relative;}
+  .logo{font-family:'Major Mono Display',monospace;font-size:26px;color:var(--green);
+        letter-spacing:1px;text-shadow:0 0 18px rgba(78,232,122,.35);margin:0;}
+  .tag{color:var(--muted);font-size:12px;letter-spacing:1px;margin-top:4px;}
+  .lang-switch{position:absolute;top:0;right:0;display:flex;border:1px solid var(--line-bright);
+               border-radius:8px;overflow:hidden;}
+  .lang-switch button{
+    background:transparent;border:none;color:var(--muted);font-family:inherit;font-size:12px;
+    padding:6px 11px;cursor:pointer;transition:.15s;border-radius:0;
+  }
+  .lang-switch button.on{background:var(--cyan);color:#04161a;font-weight:700;}
+  .lang-switch button:not(.on):hover{color:var(--ink);}
+
+  .progress{display:flex;align-items:center;gap:8px;margin-top:14px;flex-wrap:wrap;}
+  .dot{width:11px;height:11px;border-radius:3px;border:1px solid var(--line-bright);background:var(--panel);}
+  .dot.done{background:var(--green);border-color:var(--green);box-shadow:0 0 8px rgba(78,232,122,.5);}
+  .dot.cur{border-color:var(--cyan);box-shadow:0 0 8px rgba(84,214,224,.5);}
+  .score{margin-left:auto;color:var(--muted);font-size:12px;}
+  .score b{color:var(--amber);}
+
+  .card{background:linear-gradient(180deg,var(--panel),var(--panel-2));
+        border:1px solid var(--line);border-radius:12px;padding:18px 18px 20px;margin-bottom:18px;
+        box-shadow:0 20px 40px -30px #000;}
+  .lv{display:flex;align-items:center;gap:10px;margin-bottom:4px;}
+  .num{color:var(--green-dim);font-size:13px;}
+  .cat{font-size:10px;letter-spacing:1.5px;color:var(--cyan);
+       border:1px solid var(--line-bright);padding:2px 7px;border-radius:5px;}
+  h2{font-size:18px;margin:6px 0 10px;color:var(--ink);}
+  .desc{font-size:14px;color:#aac6bf;margin-bottom:14px;}
+  .desc code{background:#05090b;border:1px solid var(--line);padding:1px 6px;border-radius:5px;color:var(--amber);}
+  .blob{display:block;background:#05090b;border:1px solid var(--line);border-left:3px solid var(--cyan);
+        border-radius:8px;padding:12px 14px;margin:12px 0;color:var(--amber);font-size:13px;
+        word-break:break-all;white-space:pre-wrap;overflow-x:auto;}
+
+  .answer{display:flex;gap:8px;margin-top:6px;flex-wrap:wrap;}
+  input{flex:1;min-width:180px;font-family:inherit;font-size:14px;color:var(--green);
+        background:#05090b;border:1px solid var(--line-bright);border-radius:8px;padding:11px 13px;outline:none;}
+  input:focus{border-color:var(--green);box-shadow:0 0 0 2px rgba(78,232,122,.15);}
+  input::placeholder{color:#33514e;}
+  button{font-family:inherit;font-size:14px;font-weight:600;cursor:pointer;border-radius:8px;
+         padding:11px 16px;border:1px solid var(--line-bright);background:var(--panel-2);color:var(--ink);transition:.15s;}
+  button:hover{border-color:var(--green);color:var(--green);}
+  button:active{transform:translateY(1px);}
+  .btn-go{background:var(--green-dim);border-color:var(--green-dim);color:#03130a;}
+  .btn-go:hover{background:var(--green);color:#03130a;}
+  .ghost{background:transparent;font-size:12px;padding:7px 11px;color:var(--muted);}
+
+  .feedback{margin-top:11px;font-size:13px;min-height:18px;}
+  .feedback.ok{color:var(--green);}
+  .feedback.no{color:var(--red);}
+  .hint{margin-top:10px;font-size:13px;color:var(--amber);background:rgba(232,184,78,.07);
+        border:1px dashed rgba(232,184,78,.3);border-radius:8px;padding:9px 12px;display:none;}
+  .hint.show{display:block;}
+  .solved{border-color:var(--green-dim);}
+  .flagline{color:var(--green);font-size:13px;margin-top:8px;}
+  .info{margin-top:12px;padding:13px 15px;border-radius:9px;background:rgba(84,214,224,.06);
+        border:1px solid rgba(84,214,224,.22);border-left:3px solid var(--cyan);
+        font-size:13px;line-height:1.65;color:#bcdde2;animation:slidein .4s ease;}
+  .info b{color:var(--cyan);font-weight:600;}
+  .info code{background:#05090b;border:1px solid var(--line);padding:1px 5px;border-radius:4px;color:var(--amber);font-size:12px;}
+  .info-label{display:block;color:var(--cyan);font-size:10px;letter-spacing:1.5px;margin-bottom:6px;opacity:.8;}
+  @keyframes slidein{from{opacity:0;transform:translateY(-4px);}to{opacity:1;transform:translateY(0);}}
+
+  .locked{opacity:.4;filter:grayscale(.4);pointer-events:none;}
+  .locked-msg{color:var(--muted);font-size:13px;font-style:italic;}
+
+  .endcard{text-align:center;padding:30px 20px;display:none;}
+  .endcard.show{display:block;}
+  .endcard .big{font-family:'Major Mono Display',monospace;font-size:30px;color:var(--green);
+                text-shadow:0 0 22px rgba(78,232,122,.4);margin-bottom:8px;}
+  .cursor::after{content:"_";animation:bl 1s steps(1) infinite;color:var(--green);}
+  @keyframes bl{50%{opacity:0;}}
+
+  .about{margin-top:40px;padding-top:24px;border-top:1px solid var(--line);
+         color:var(--muted);font-size:14px;line-height:1.7;}
+  .about h2{font-size:16px;color:var(--ink);margin:22px 0 8px;}
+  .about h2:first-child{margin-top:0;}
+  .about p{margin:0 0 12px;}
+  .about strong{color:var(--green);font-weight:600;}
+  .about em{color:var(--amber);font-style:normal;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1 class="logo">root@ctf</h1>
+    <div class="tag cursor" id="tagline"></div>
+    <div class="lang-switch">
+      <button id="btnTR" onclick="setLang('tr')">TR</button>
+      <button id="btnEN" onclick="setLang('en')">EN</button>
+    </div>
+    <div class="progress" id="prog"></div>
+  </header>
+
+  <div id="levels"></div>
+
+  <div class="endcard card" id="end">
+    <div class="big">pwned.</div>
+    <div id="endMsg"></div>
+    <div style="color:var(--muted);margin-top:10px;font-size:13px;"><span id="endScoreLabel"></span> <b id="finalScore" style="color:var(--amber)"></b></div>
+    <button class="btn-go" style="margin-top:18px" onclick="resetAll()" id="restartBtn"></button>
+  </div>
+
+  <section class="about" id="about"></section>
+</div>
+
+<script>
+(() => {
+  const b64 = s => btoa(unescape(encodeURIComponent(s)));
+  const toHex = s => [...s].map(c=>c.charCodeAt(0).toString(16).padStart(2,'0')).join('');
+  const rot13 = s => s.replace(/[a-z]/gi,c=>String.fromCharCode((c<='Z'?90:122)>=(c=c.charCodeAt(0)+13)?c:c-26));
+  const rev = s => [...s].reverse().join('');
+  const xorHex = (s,k) => [...s].map((c,i)=>(c.charCodeAt(0)^k.charCodeAt(i%k.length)).toString(16).padStart(2,'0')).join('');
+  const urlBlob = f => '<!-- debug: secret%3D'+f.slice(4).replace(/\{/g,'%7B').replace(/\}/g,'%7D')+' -->';
+
+  const UI = {
+    tr:{
+      tagline:'// flag bul, sonraki seviye açılsın',
+      submit:'Gönder', hint:'İpucu', solved:'Çözüldü',
+      locked:'🔒 Kilitli — önceki bayrağı bul.',
+      correct:'✔ Doğru! Sonraki seviye açıldı.',
+      wrong:'✗ Yanlış bayrak. Tekrar dene.',
+      infoLabel:'bilgi', endMsg:'Tüm bayrakları yakaladın. 🏴',
+      endScore:'Toplam puan:', restart:'Baştan başla', scoreWord:'PUAN',
+      switchWarn:'Dili değiştirmek oyunu baştan başlatır (bayraklar farklı). Devam edilsin mi?',
+      about:`
+        <h2>Bu oyun nedir?</h2>
+        <p>Bu, tarayıcıda oynanan <strong>ücretsiz bir CTF (Capture The Flag) bulmaca oyunudur</strong>.
+        Her seviyede gizlenmiş bir <em>bayrağı</em> (flag) çözmeni ister; her doğru cevap bir sonrakini açar.
+        Kısacası eğlenirken <strong>şifre çözmeyi</strong> ve temelleri öğrenirsin.</p>
+        <h2>Neler öğreniyorsun?</h2>
+        <p>Temel kodlama ve şifreleme tekniklerini uygulayarak öğrenirsin: <strong>Base64</strong>, <strong>hex</strong>,
+        <strong>ROT13</strong>, <strong>XOR</strong>, <strong>URL kodlama</strong> ve <strong>katmanlı kodlama</strong>.
+        Her seviye çözüldüğünde o tekniğin ne olduğunu anlatan kısa bir açıklama belirir.</p>
+        <h2>Kimler için?</h2>
+        <p><strong>Siber güvenliğe yeni başlayanlar</strong>, öğrenciler, bulmaca ve zeka oyunu sevenler için.
+        Kurulum gerekmez, üyelik istemez; sayfayı aç ve oynamaya başla.</p>`
+    },
+    en:{
+      tagline:'// find the flag, unlock the next level',
+      submit:'Submit', hint:'Hint', solved:'Solved',
+      locked:'🔒 Locked — find the previous flag first.',
+      correct:'✔ Correct! Next level unlocked.',
+      wrong:'✗ Wrong flag. Try again.',
+      infoLabel:'info', endMsg:'You captured every flag. 🏴',
+      endScore:'Total score:', restart:'Start over', scoreWord:'SCORE',
+      switchWarn:'Switching language restarts the game (the flags are different). Continue?',
+      about:`
+        <h2>What is this game?</h2>
+        <p>This is a <strong>free, browser-based CTF (Capture The Flag) puzzle game</strong>.
+        On each level you decode a hidden <em>flag</em>; every correct answer unlocks the next.
+        In short, you learn <strong>how to decode</strong> and the basics of cybersecurity while having fun.</p>
+        <h2>What will you learn?</h2>
+        <p>You practice core encoding and crypto techniques: <strong>Base64</strong>, <strong>hex</strong>,
+        <strong>ROT13</strong>, <strong>XOR</strong>, <strong>URL encoding</strong> and <strong>layered encoding</strong>.
+        Each time you solve a level, a short explanation of that technique appears.</p>
+        <h2>Who is it for?</h2>
+        <p><strong>Cybersecurity beginners</strong>, students, and puzzle lovers.
+        No setup, no sign-up required — just open the page and start playing.</p>`
+    }
+  };
+
+  const LEVELS = {
+    tr:[
+      {cat:'ENCODING', title:'Sıcak başlangıç',
+       desc:'Bir sistem logunda bu satıra rastladın. Çöz bakalım ne yazıyor:',
+       make:f=>({blob:b64(f),answer:f}), flag:'flag{base64_isinma_turu}',
+       hint:'Karakter seti `A-Z a-z 0-9 + /`, uzunluk 4\'ün katı. `atob()` ya da `base64 -d`.',
+       info:'<b>Base64 nedir?</b> Veriyi sadece harf, rakam ve birkaç işaretten oluşan bir metne dönüştürmenin yoludur. Şifre değildir — kilidi yoktur, isteyen herkes kolayca eski hâline çevirebilir.'},
+      {cat:'ENCODING', title:'Onaltılık',
+       desc:'Bir pcap içinden çıkan payload. Byte byte oku:',
+       make:f=>({blob:toHex(f),answer:f}), flag:'flag{hex_okumak_kolay}',
+       hint:'Her iki karakter bir byte. `xxd -r -p` veya hex→ASCII çevirici.',
+       info:'<b>Hex (onaltılık) nedir?</b> Bilgisayarın anladığı verileri sayı ve harflerle (0-9 ve A-F) yazmanın bir yoludur. Her iki karakter bir harfe/sembole karşılık gelir.'},
+      {cat:'CRYPTO', title:'Sezar gölgesi',
+       desc:'Birisi yazıyı "kaydırmış". 13 basamak tanıdık gelmeli:',
+       make:f=>({blob:rot13(f),answer:f}), flag:'flag{rot13_caesar_baby}',
+       hint:'Her harf 13 ileri kaymış. ROT13 kendi tersidir — tekrar uygula geri gelir.',
+       info:'<b>ROT13 nedir?</b> Her harfi alfabede 13 sıra ileri kaydıran basit bir şifredir (A → N gibi). Aynı işlemi tekrar uygulayınca yazı eski hâline döner. Ciddi bir koruma değildir.'},
+      {cat:'RECON', title:'Ters köşe',
+       desc:'Dosyanın içeriği bir şekilde "ters" görünüyor:',
+       make:f=>({blob:rev(f),answer:f}), flag:'flag{tersten_okuyunca_dogru}',
+       hint:'String tersine çevrilmiş. `rev` komutu ya da [...s].reverse().',
+       info:'<b>Ters çevirme nedir?</b> Bir yazıyı sondan başa doğru okumaktır — "merhaba" → "abahrem" gibi. Şifre bile sayılmaz, sadece gözü yanıltan basit bir numaradır.'},
+      {cat:'CRYPTO', title:'Tek anahtar (XOR)',
+       desc:'Aşağıdaki hex, tek karakterlik bir anahtarla XOR\'lanmış (anahtar = "K"). Çöz:',
+       make:f=>({blob:xorHex(f,'K'),answer:f}), flag:'flag{xor_tek_anahtar}',
+       hint:'Anahtar tek byte: "K". Her byte\'ı "K" ile XOR\'la.',
+       info:'<b>XOR nedir?</b> Bir veriyi bir "anahtarla" karıştırıp tanınmaz hâle getiren bir işlemdir. Aynı anahtarı bir kez daha uygulayınca veri eski hâline döner. Anahtar basitse çözmesi kolaydır.'},
+      {cat:'FORENSICS', title:'Çift kat',
+       desc:'Biri iki kere kodlamış. Önce base64, soyduğunda yine base64 göreceksin:',
+       make:f=>({blob:b64(b64(f)),answer:f}), flag:'flag{cift_kat_base64}',
+       hint:'Bir kez çöz → hâlâ base64 → bir kez daha çöz.',
+       info:'<b>Katmanlı kodlama nedir?</b> Bir veriyi üst üste birkaç kez gizlemektir (örn. base64\'ü tekrar base64\'lemek). Çözerken her katmanı tek tek soyman gerekir — soğan soyar gibi.'},
+      {cat:'WEB', title:'Gizli yorum',
+       desc:'Bir sayfanın kaynağındaki HTML yorumu. İçindeki değer URL-encoded:',
+       make:f=>({blob:urlBlob(f),answer:f}), flag:'flag{url_decode_lazim}',
+       hint:'%3D → "=", %7B → "{", %7D → "}". `decodeURIComponent()` ile çöz. secret= sonrası süslü parantezli kısım; başına "flag" ekle.',
+       info:'<b>URL-encoding nedir?</b> Adreslerde doğrudan kullanılamayan karakterleri <code>%</code> ve bir kodla yazma yöntemidir — örn. boşluk <code>%20</code> olur.'},
+      {cat:'CRYPTO', title:'Final: katmanlı zincir',
+       desc:'Son düzlük. Bayrak önce ters çevrilmiş, sonra base64\'lenmiş. Önce base64 çöz, çıkanı ters çevir:',
+       make:f=>({blob:b64(rev(f)),answer:f}), flag:'flag{zinciri_cozdun_tebrikler}',
+       hint:'1) base64 decode → karışık string. 2) ters çevir → bayrak.',
+       info:'<b>Katmanlı zincir nedir?</b> Birden fazla yöntemi sırayla üst üste uygulamaktır. Çözerken sırayı tersten takip edersin: en son yapılan ilk açılır. Tebrikler! 🏴'}
+    ],
+    en:[
+      {cat:'ENCODING', title:'Warm-up',
+       desc:'You found this line in a system log. Decode it and see what it says:',
+       make:f=>({blob:b64(f),answer:f}), flag:'flag{base64_warmup}',
+       hint:'Character set `A-Z a-z 0-9 + /`, length a multiple of 4. Use `atob()` or `base64 -d`.',
+       info:'<b>What is Base64?</b> A way of turning data into text made only of letters, digits and a few symbols. It is not encryption — there is no key, anyone can easily turn it back.'},
+      {cat:'ENCODING', title:'Hexadecimal',
+       desc:'A payload pulled from a pcap. Read it byte by byte:',
+       make:f=>({blob:toHex(f),answer:f}), flag:'flag{hex_is_easy}',
+       hint:'Every two characters are one byte. `xxd -r -p` or a hex→ASCII converter.',
+       info:'<b>What is hex?</b> A way of writing the data a computer understands using digits and letters (0-9 and A-F). Every two characters map to one letter/symbol.'},
+      {cat:'CRYPTO', title:'Caesar\'s shadow',
+       desc:'Someone "shifted" the text. 13 steps should feel familiar:',
+       make:f=>({blob:rot13(f),answer:f}), flag:'flag{rot13_caesar_baby}',
+       hint:'Each letter shifted 13 forward. ROT13 is its own inverse — apply again to reverse.',
+       info:'<b>What is ROT13?</b> A simple cipher that shifts each letter 13 places forward (A → N). Apply it again and the text returns to normal. It provides no real protection.'},
+      {cat:'RECON', title:'Backwards',
+       desc:'The file content somehow looks "reversed":',
+       make:f=>({blob:rev(f),answer:f}), flag:'flag{read_it_backwards}',
+       hint:'The string is reversed. Use `rev` or [...s].reverse().',
+       info:'<b>What is reversing?</b> Reading a string from end to start — like "hello" → "olleh". It isn\'t even a cipher, just a simple trick to fool the eye.'},
+      {cat:'CRYPTO', title:'Single key (XOR)',
+       desc:'The hex below was XOR\'d with a one-character key (key = "K"). Decode it:',
+       make:f=>({blob:xorHex(f,'K'),answer:f}), flag:'flag{xor_single_key}',
+       hint:'The key is one byte: "K". XOR every byte with "K".',
+       info:'<b>What is XOR?</b> An operation that mixes data with a "key" to make it unrecognizable. Apply the same key once more and the data comes right back. A simple key is easy to crack.'},
+      {cat:'FORENSICS', title:'Double layer',
+       desc:'Someone encoded it twice. Base64 first; once you peel it, base64 again:',
+       make:f=>({blob:b64(b64(f)),answer:f}), flag:'flag{double_base64}',
+       hint:'Decode once → still base64 → decode once more.',
+       info:'<b>What is layered encoding?</b> Hiding data several times in a row (e.g. base64-ing something already base64). You peel each layer one at a time — like an onion.'},
+      {cat:'WEB', title:'Hidden comment',
+       desc:'This HTML comment sits in a page\'s source. The value inside is URL-encoded:',
+       make:f=>({blob:urlBlob(f),answer:f}), flag:'flag{url_decode_me}',
+       hint:'%3D → "=", %7B → "{", %7D → "}". Decode with `decodeURIComponent()`. After secret= comes the flag in braces; add "flag" in front.',
+       info:'<b>What is URL-encoding?</b> Writing characters that can\'t appear in a web address using a <code>%</code> sign plus a code — e.g. a space becomes <code>%20</code>.'},
+      {cat:'CRYPTO', title:'Final: layered chain',
+       desc:'The home stretch. The flag was reversed, then base64-encoded. Decode base64, then reverse:',
+       make:f=>({blob:b64(rev(f)),answer:f}), flag:'flag{you_solved_the_chain}',
+       hint:'1) base64 decode → scrambled string. 2) reverse it → the flag.',
+       info:'<b>What is a layered chain?</b> Applying several methods one after another. To solve, follow the order in reverse: the last thing applied is the first you undo. Congrats! 🏴'}
+    ]
+  };
+
+  let lang = 'tr', progress = 0, score = 0;
+  const levelsEl = document.getElementById('levels');
+  const progEl = document.getElementById('prog');
+  const endEl = document.getElementById('end');
+  const curLevels = () => LEVELS[lang];
+
+  function renderProgress(){
+    const L = curLevels(), t = UI[lang];
+    progEl.innerHTML='';
+    L.forEach((_,i)=>{
+      const d=document.createElement('div');
+      d.className='dot'+(i<progress?' done':i===progress?' cur':'');
+      progEl.appendChild(d);
+    });
+    const s=document.createElement('div');
+    s.className='score';
+    s.innerHTML=`${t.scoreWord} <b>${score}</b> · ${progress}/${L.length}`;
+    progEl.appendChild(s);
+  }
+
+  const escapeHtml = s => s.replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+
+  function render(){
+    const t = UI[lang], L = curLevels();
+    document.documentElement.lang = lang;
+    document.getElementById('tagline').textContent = t.tagline;
+    document.getElementById('btnTR').classList.toggle('on', lang==='tr');
+    document.getElementById('btnEN').classList.toggle('on', lang==='en');
+    document.getElementById('about').innerHTML = t.about;
+    document.getElementById('endMsg').textContent = t.endMsg;
+    document.getElementById('endScoreLabel').textContent = t.endScore;
+    document.getElementById('restartBtn').textContent = t.restart;
+
+    levelsEl.innerHTML='';
+    L.forEach((lv,i)=>{
+      const built = lv.make(lv.flag);
+      const solved = i<progress, locked = i>progress;
+      const card=document.createElement('div');
+      card.className='card'+(solved?' solved':'')+(locked?' locked':'');
+
+      if(locked){
+        card.innerHTML=`<div class="lv"><span class="num">[${String(i+1).padStart(2,'0')}]</span>
+          <span class="cat">???</span></div><div class="locked-msg">${t.locked}</div>`;
+        levelsEl.appendChild(card); return;
+      }
+
+      card.innerHTML=`
+        <div class="lv"><span class="num">[${String(i+1).padStart(2,'0')}]</span><span class="cat">${lv.cat}</span></div>
+        <h2>${lv.title}</h2>
+        <div class="desc">${lv.desc}</div>
+        <div class="blob">${escapeHtml(built.blob)}</div>
+        ${solved
+          ? `<div class="flagline">✔ ${t.solved} → <b>${escapeHtml(built.answer)}</b></div>
+             <div class="info"><span class="info-label">// ${t.infoLabel} · ${lv.cat}</span>${lv.info}</div>`
+          : `<div class="answer">
+               <input id="in${i}" placeholder="flag{...}" autocomplete="off" autocapitalize="off" spellcheck="false">
+               <button class="btn-go" data-go="${i}">${t.submit}</button>
+               <button class="ghost" data-hint="${i}">${t.hint}</button>
+             </div>
+             <div class="hint" id="hint${i}">${lv.hint}</div>
+             <div class="feedback" id="fb${i}"></div>`}`;
+      levelsEl.appendChild(card);
+    });
+
+    const i=progress;
+    if(i<L.length){
+      const inp=document.getElementById('in'+i);
+      const go=()=>submit(i);
+      levelsEl.querySelector(`[data-go="${i}"]`).onclick=go;
+      levelsEl.querySelector(`[data-hint="${i}"]`).onclick=()=>document.getElementById('hint'+i).classList.add('show');
+      if(inp){ inp.focus(); inp.addEventListener('keydown',e=>{if(e.key==='Enter')go();}); }
+    }
+    endEl.classList.toggle('show', progress>=L.length);
+    if(progress>=L.length){
+      document.getElementById('finalScore').textContent=score;
+      endEl.scrollIntoView({behavior:'smooth'});
+    }
+    renderProgress();
+  }
+
+  const norm = s => (s||'').trim().toLowerCase().replace(/\s+/g,'');
+
+  function submit(i){
+    const inp=document.getElementById('in'+i), fb=document.getElementById('fb'+i);
+    const val=norm(inp.value); if(!val) return;
+    const lvl=curLevels()[i];
+    const ans=lvl.make(lvl.flag).answer;
+    if(val===norm(ans)){
+      const hintUsed=document.getElementById('hint'+i).classList.contains('show');
+      score += hintUsed?60:100;
+      fb.className='feedback ok'; fb.textContent=UI[lang].correct;
+      progress=i+1;
+      setTimeout(render,500);
+    }else{
+      fb.className='feedback no'; fb.textContent=UI[lang].wrong;
+      inp.style.borderColor='var(--red)';
+      setTimeout(()=>inp.style.borderColor='',600);
+    }
+  }
+
+  window.setLang=function(l){
+    if(l===lang) return;
+    if(progress>0 && progress<curLevels().length){
+      if(!confirm(UI[lang].switchWarn)) return;
+    }
+    lang=l; progress=0; score=0;
+    render();
+    window.scrollTo({top:0,behavior:'smooth'});
+  };
+
+  window.resetAll=function(){
+    progress=0; score=0; render();
+    window.scrollTo({top:0,behavior:'smooth'});
+  };
+
+  render();
+})();
+</script>
+</body>
+</html>
