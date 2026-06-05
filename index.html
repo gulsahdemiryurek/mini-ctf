@@ -175,6 +175,14 @@
   const urlBlob = f => '<!-- debug: secret%3D'+f.slice(4).replace(/\{/g,'%7B').replace(/\}/g,'%7D')+' -->';
   const b64url = s => b64(s).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
   const toDec = s => [...s].map(c=>c.charCodeAt(0)).join(' ');
+  const toBin = s => [...s].map(c=>c.charCodeAt(0).toString(2).padStart(8,'0')).join(' ');
+  const MORSE={a:'.-',b:'-...',c:'-.-.',d:'-..',e:'.',f:'..-.',g:'--.',h:'....',i:'..',j:'.---',k:'-.-',l:'.-..',m:'--',n:'-.',o:'---',p:'.--.',q:'--.-',r:'.-.',s:'...',t:'-',u:'..-',v:'...-',w:'.--',x:'-..-',y:'-.--',z:'--..','0':'-----','1':'.----','2':'..---','3':'...--','4':'....-','5':'.....','6':'-....','7':'--...','8':'---..','9':'----.','_':'..--.-'};
+  const toMorse = inner => [...inner].map(c=>MORSE[c]||'?').join(' ');
+  const B32='ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+  function b32enc(str){let bits='';for(const c of str)bits+=c.charCodeAt(0).toString(2).padStart(8,'0');let out='';for(let i=0;i<bits.length;i+=5){let ch=bits.substr(i,5);if(ch.length<5)ch=ch.padEnd(5,'0');out+=B32[parseInt(ch,2)];}while(out.length%8)out+='=';return out;}
+  const caesar=(s,n)=>s.replace(/[a-z]/gi,c=>{const base=c<='Z'?65:97;return String.fromCharCode((c.charCodeAt(0)-base+n)%26+base);});
+  function vigEnc(s,key){let ki=0;return s.replace(/[a-z]/gi,c=>{const base=c<='Z'?65:97;const k=key[ki++%key.length].toLowerCase().charCodeAt(0)-97;return String.fromCharCode((c.charCodeAt(0)-base+k)%26+base);});}
+  const atbash=s=>s.replace(/[a-z]/gi,c=>{const base=c<='Z'?65:97;return String.fromCharCode(base+25-(c.charCodeAt(0)-base));});
   const makeJWT = flag => {
     const h=b64url(JSON.stringify({alg:'HS256',typ:'JWT'}));
     const p=b64url(JSON.stringify({user:'admin',flag:flag,iat:1716239022}));
@@ -193,13 +201,14 @@
       switchWarn:'Dili değiştirmek oyunu baştan başlatır (bayraklar farklı). Devam edilsin mi?',
       about:`
         <h2>Bu oyun nedir?</h2>
-        <p>Tarayıcıda oynanan <strong>ücretsiz bir CTF (Capture The Flag) bulmaca oyunudur</strong>.
+        <p> Tarayıcıda oynanan <strong>ücretsiz bir CTF (Capture The Flag) bulmaca oyunudur</strong>.
         Her seviyede gizlenmiş bir <em>bayrağı</em> (flag) çözmeni ister; her doğru cevap bir sonrakini açar.
-        </p>
+       </p>
         <h2>Neler öğreniyorsun?</h2>
         <p> <strong>Base64</strong>, <strong>hex</strong>,
         <strong>ROT13</strong>, <strong>XOR</strong>, <strong>URL kodlama</strong>, <strong>katmanlı kodlama</strong>,
-        <strong>ASCII</strong> ve <strong>JWT</strong>.
+        <strong>ASCII</strong>, <strong>JWT</strong>, <strong>binary</strong>, <strong>Mors</strong>,
+        <strong>Base32</strong>, <strong>Sezar</strong>, <strong>Vigenère</strong> ve <strong>Atbash</strong>.
         Her seviye çözüldüğünde o tekniğin ne olduğunu anlatan kısa bir açıklama belirir.</p>
         <h2>Kimler için?</h2>
         <p><strong>Siber güvenliğe yeni başlayanlar</strong>, öğrenciler, bulmaca ve zeka oyunu sevenler için.
@@ -218,11 +227,12 @@
         <h2>What is this game?</h2>
         <p>This is a <strong>free, browser-based CTF (Capture The Flag) puzzle game</strong>.
         On each level you decode a hidden <em>flag</em>; every correct answer unlocks the next.
-       </p>
+        </p>
         <h2>What will you learn?</h2>
         <p>You practice core encoding and crypto techniques: <strong>Base64</strong>, <strong>hex</strong>,
         <strong>ROT13</strong>, <strong>XOR</strong>, <strong>URL encoding</strong>, <strong>layered encoding</strong>,
-        <strong>ASCII</strong> and <strong>JWT</strong>.
+        <strong>ASCII</strong>, <strong>JWT</strong>, <strong>binary</strong>, <strong>Morse</strong>,
+        <strong>Base32</strong>, <strong>Caesar</strong>, <strong>Vigenère</strong> and <strong>Atbash</strong>.
         Each time you solve a level, a short explanation of that technique appears.</p>
         <h2>Who is it for?</h2>
         <p><strong>Cybersecurity beginners</strong>, students, and puzzle lovers.
@@ -279,6 +289,36 @@
        flag:'flag{ascii_tablosu}',
        hint:'Bunlar ASCII kodları. Her sayı bir karaktere karşılık gelir (örn. 102 = "f", 108 = "l"). Her sayıyı harfe çevir. (`String.fromCharCode` ya da bir ASCII tablosu)',
        info:'<b>ASCII nedir?</b> ASCII, harf, rakam ve sembolleri sayılarla eşleştiren bir karakter kodlama standardıdır (örn. "A" = 65, "a" = 97). Bilgisayarlar metni aslında bu sayılar olarak saklar; sayı dizilerini tekrar karaktere çevirerek metni geri elde edebilirsin.'},
+      {cat:'ENCODING', title:'Sıfır ve bir',
+       desc:'Sadece 0 ve 1\'lerden oluşan bir dizi. En temel dilde bir mesaj:',
+       make:f=>({blob:toBin(f),answer:f}), flag:'flag{ikili_sistem}',
+       hint:'Bu binary (ikili). Her 8 bitlik grup bir karaktere karşılık gelir. Her grubu 2 tabanından sayıya, sonra ASCII karaktere çevir.',
+       info:'<b>Binary nedir?</b> Binary (ikili sistem), sayıları yalnızca 0 ve 1 ile gösteren, bilgisayarların temelinde yatan sayı sistemidir. Her karakter genelde 8 bitlik (1 byte) bir grupla temsil edilir; bu gruplar ASCII değerine, oradan da harfe çevrilir.'},
+      {cat:'CRYPTO', title:'Nokta ve çizgi',
+       desc:'Nokta ve çizgilerden oluşan bir sinyal yakaladın. Çöz ve flag{...} içine koy:',
+       make:f=>({blob:toMorse(f.slice(5,-1)),answer:f}), flag:'flag{mors_alfabesi}',
+       hint:'Bu Mors kodu. Boşlukla ayrılmış her grup bir harf/rakam. Bir Mors tablosuyla çöz, çıkan kelimeyi flag{...} içine koy. (örn. ".-" = a)',
+       info:'<b>Mors kodu nedir?</b> Mors alfabesi, harf ve rakamları nokta (.) ve çizgi (–) dizileriyle gösteren bir kodlama sistemidir. Tarihsel olarak telgraf ve telsiz iletişiminde kullanılmıştır; her karakterin kendine özgü bir nokta-çizgi kombinasyonu vardır.'},
+      {cat:'ENCODING', title:'Base32',
+       desc:'Base64\'e benziyor ama sadece büyük harf ve birkaç rakam var. Tanıdık ama farklı:',
+       make:f=>({blob:b32enc(f),answer:f}), flag:'flag{base32_cozumu}',
+       hint:'Bu Base32. Base64\'ün akrabası ama 32 karakterlik bir alfabe kullanır (A-Z ve 2-7). Bir Base32 decoder ile çöz. (CyberChef destekler)',
+       info:'<b>Base32 nedir?</b> Base32, ikili veriyi 32 karakterlik bir alfabeyle (A–Z ve 2–7) metne dönüştüren bir kodlama yöntemidir. Base64\'e benzer ama büyük/küçük harf karışıklığına dayanıklıdır; bu yüzden bazı sistemlerde (örn. TOTP anahtarları) tercih edilir.'},
+      {cat:'CRYPTO', title:'Gizli kaydırma',
+       desc:'Harfler kaydırılmış ama kaç basamak olduğu belli değil. Bu sefer sayıyı sen bulacaksın:',
+       make:f=>({blob:caesar(f,7),answer:f}), flag:'flag{sezar_brute}',
+       hint:'Bu bir Sezar şifresi ama kaydırma miktarı gizli. 1\'den 25\'e kadar tüm olasılıkları dene (brute-force) — anlamlı "flag{...}" çıkan doğrudur. (İpucu: kaydırma 7)',
+       info:'<b>Brute-force (Sezar) nedir?</b> Sezar şifresinde kaydırma sayısı bilinmiyorsa, olası tüm değerler (1–25) tek tek denenerek doğru çözüm bulunur. Buna "kaba kuvvet" (brute-force) denir: olasılık sayısı az olduğunda, tüm seçenekleri denemek pratik bir saldırı yöntemidir.'},
+      {cat:'CRYPTO', title:'Anahtarlı şifre',
+       desc:'Harfler kaydırılmış ama bu sefer her harf farklı miktarda. Çözmek için bir anahtar lazım: "KEY"',
+       make:f=>({blob:vigEnc(f,'KEY'),answer:f}), flag:'flag{vigenere_sifresi}',
+       hint:'Bu Vigenère şifresi, anahtar "KEY". Vigenère her harfi anahtarın bir harfi kadar kaydırır. Bir Vigenère decoder\'a metni ve "KEY" anahtarını ver.',
+       info:'<b>Vigenère nedir?</b> Vigenère, bir anahtar kelime kullanarak her harfi farklı miktarda kaydıran klasik bir şifredir. Sezar\'dan daha güçlüdür çünkü tek bir kaydırma yoktur; ama anahtar bilinir ya da tahmin edilirse kolayca çözülür. Çözmek için aynı anahtar gerekir.'},
+      {cat:'CRYPTO', title:'Ayna alfabe',
+       desc:'Harfler bir şekilde değişmiş: sanki alfabe ters çevrilmiş gibi. Çöz:',
+       make:f=>({blob:atbash(f),answer:f}), flag:'flag{atbas_aynasi}',
+       hint:'Bu Atbash şifresi: A↔Z, B↔Y, C↔X... yani alfabe baştan sona ters eşlenir. Her harfi alfabedeki ayna karşılığıyla değiştir.',
+       info:'<b>Atbash nedir?</b> Atbash, alfabedeki her harfi ters karşılığıyla değiştiren çok eski bir şifredir (A→Z, B→Y, ...). Anahtarı yoktur, kuralı sabittir; bu yüzden güvenli değildir ama tarihsel ve eğitimsel olarak ilginç bir örnektir.'},
       {cat:'CRYPTO', title:'Final: katmanlı zincir',
        desc:'Son düzlük. Bu sefer tek bir numara yok — birkaç katman üst üste. Çöz:',
        make:f=>({blob:b64(rev(f)),answer:f}), flag:'flag{zinciri_cozdun_tebrikler}',
@@ -333,6 +373,36 @@
        flag:'flag{ascii_table}',
        hint:'These are ASCII codes. Each number maps to a character (e.g. 102 = "f", 108 = "l"). Convert each number to its letter. (`String.fromCharCode` or an ASCII table)',
        info:'<b>What is ASCII?</b> ASCII is a character-encoding standard that maps letters, digits and symbols to numbers (e.g. "A" = 65, "a" = 97). Computers actually store text as these numbers; converting a sequence of numbers back to characters recovers the text.'},
+      {cat:'ENCODING', title:'Zeros and ones',
+       desc:'A sequence of only 0s and 1s. A message in the most basic language:',
+       make:f=>({blob:toBin(f),answer:f}), flag:'flag{binary_system}',
+       hint:'This is binary. Each group of 8 bits is one character. Convert each group from base 2 to a number, then to its ASCII character.',
+       info:'<b>What is binary?</b> Binary (base 2) represents numbers using only 0 and 1 and is the foundation of all computers. Each character is usually represented by an 8-bit group (1 byte); these groups are converted to an ASCII value and then to a letter.'},
+      {cat:'CRYPTO', title:'Dots and dashes',
+       desc:'You picked up a signal made of dots and dashes. Decode it and put it inside flag{...}:',
+       make:f=>({blob:toMorse(f.slice(5,-1)),answer:f}), flag:'flag{morse_code}',
+       hint:'This is Morse code. Each space-separated group is a letter/digit. Decode with a Morse table, then wrap the word in flag{...}. (e.g. ".-" = a)',
+       info:'<b>What is Morse code?</b> Morse code represents letters and digits as sequences of dots (.) and dashes (–). Historically used in telegraph and radio communication, each character has its own unique dot-dash combination.'},
+      {cat:'ENCODING', title:'Base32',
+       desc:'Looks like Base64 but only uppercase letters and a few digits. Familiar yet different:',
+       make:f=>({blob:b32enc(f),answer:f}), flag:'flag{base32_decoded}',
+       hint:'This is Base32. A relative of Base64 but uses a 32-character alphabet (A-Z and 2-7). Decode with a Base32 decoder. (CyberChef supports it)',
+       info:'<b>What is Base32?</b> Base32 encodes binary data into text using a 32-character alphabet (A–Z and 2–7). Similar to Base64 but resistant to upper/lowercase confusion, which is why some systems (e.g. TOTP keys) prefer it.'},
+      {cat:'CRYPTO', title:'Hidden shift',
+       desc:'The letters are shifted, but the amount is unknown. This time you find the number:',
+       make:f=>({blob:caesar(f,7),answer:f}), flag:'flag{caesar_brute}',
+       hint:'This is a Caesar cipher but the shift is hidden. Try all values from 1 to 25 (brute-force) — the one that yields a readable "flag{...}" is correct. (Hint: shift is 7)',
+       info:'<b>What is brute-force (Caesar)?</b> If the shift amount in a Caesar cipher is unknown, you try every possible value (1–25) one by one to find the right one. This is "brute-force": when the number of possibilities is small, trying them all is a practical attack.'},
+      {cat:'CRYPTO', title:'Keyed cipher',
+       desc:'The letters are shifted, but each by a different amount. You need a key to solve it: "KEY"',
+       make:f=>({blob:vigEnc(f,'KEY'),answer:f}), flag:'flag{vigenere_cipher}',
+       hint:'This is a Vigenère cipher with key "KEY". Vigenère shifts each letter by a letter of the key. Give a Vigenère decoder the text and the key "KEY".',
+       info:'<b>What is Vigenère?</b> Vigenère is a classic cipher that shifts each letter by a different amount using a keyword. Stronger than Caesar because there is no single shift; but if the key is known or guessed it is easily broken. You need the same key to decode.'},
+      {cat:'CRYPTO', title:'Mirror alphabet',
+       desc:'The letters have changed somehow: as if the alphabet were flipped. Decode it:',
+       make:f=>({blob:atbash(f),answer:f}), flag:'flag{atbash_mirror}',
+       hint:'This is the Atbash cipher: A↔Z, B↔Y, C↔X... the alphabet is mirrored end to end. Replace each letter with its mirror counterpart.',
+       info:'<b>What is Atbash?</b> Atbash is a very old cipher that replaces each letter with its mirror in the alphabet (A→Z, B→Y, ...). It has no key, just a fixed rule, so it is not secure — but historically and educationally interesting.'},
       {cat:'CRYPTO', title:'Final: layered chain',
        desc:'The home stretch. No single trick this time — several layers stacked. Solve it:',
        make:f=>({blob:b64(rev(f)),answer:f}), flag:'flag{you_solved_the_chain}',
