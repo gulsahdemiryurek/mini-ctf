@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://gulsahdemiryurek.github.io/minictf/sitemap.xml
+Sitemap: https://gulsahdemiryurek.github.io/mini-ctf/sitemap.xml
